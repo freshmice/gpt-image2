@@ -15,7 +15,7 @@ import { ResultGallery } from "@/components/studio/result-gallery";
 import { MultiImageUpload } from "@/components/studio/multi-image-upload";
 import { useCredentialsStore } from "@/lib/store/credentials";
 import { useHistoryStore } from "@/lib/store/history";
-import { apiEdit, apiGenerate, saveImagesForHistory } from "@/lib/fetcher";
+import { apiEdit, apiGenerate } from "@/lib/fetcher";
 import { SIZES_EDIT, SIZES_GENERATE, QUALITIES } from "@/lib/constants";
 import {
   TWELVE_GRID_DEFAULT_CELLS,
@@ -28,7 +28,7 @@ export default function Grid12Page() {
   const pushHistory = useHistoryStore((s) => s.push);
 
   const [mode, setMode] = React.useState<"ref" | "text">("ref");
-  const [refs, setRefs] = React.useState<File[]>([]);
+  const [refImages, setRefImages] = React.useState<File[]>([]);
   const [description, setDescription] = React.useState("");
   const [cells, setCells] = React.useState<string[]>(
     TWELVE_GRID_DEFAULT_CELLS.slice(),
@@ -52,7 +52,7 @@ export default function Grid12Page() {
       toast.error("请先在右上角配置 API 凭证");
       return;
     }
-    if (mode === "ref" && refs.length === 0) {
+    if (mode === "ref" && refImages.length === 0) {
       toast.error("请上传至少一张角色参考图");
       return;
     }
@@ -69,36 +69,34 @@ export default function Grid12Page() {
     setLoading(true);
     setResults([]);
     try {
-      let res;
-      if (mode === "ref") {
-        res = await apiEdit({
-          apiKey,
-          baseUrl,
-          model,
-          prompt,
-          images: refs,
-          size,
-          quality,
-          n: 1,
-        });
-      } else {
-        res = await apiGenerate({
-          apiKey,
-          baseUrl,
-          model,
-          prompt,
-          n: 1,
-          size,
-          quality,
-        });
-      }
+      const res =
+        mode === "ref"
+          ? await apiEdit({
+              apiKey,
+              baseUrl,
+              model,
+              prompt,
+              images: refImages,
+              size,
+              quality,
+              n: 1,
+            })
+          : await apiGenerate({
+              apiKey,
+              baseUrl,
+              model,
+              prompt,
+              n: 1,
+              size,
+              quality,
+            });
+
       setResults(res.images);
       setElapsedMs(res.elapsedMs);
-      const savedRefs = await saveImagesForHistory(res.images, "grid12");
       pushHistory({
         type: "grid12",
         prompt,
-        images: savedRefs,
+        images: res.savedRefs,
         elapsedMs: res.elapsedMs,
         createdAt: Date.now(),
       });
@@ -116,7 +114,7 @@ export default function Grid12Page() {
     <div className="space-y-6">
       <PageHeader
         title="12 宫格"
-        description="生成包含 12 个不同姿势/表情/动作的角色表情包宫格图"
+        description="生成包含 12 个不同姿势/表情/动作的角色表情包宫格"
       />
 
       <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
@@ -140,8 +138,8 @@ export default function Grid12Page() {
                   <div className="space-y-1.5">
                     <Label>角色参考图（最多 3 张）</Label>
                     <MultiImageUpload
-                      value={refs}
-                      onChange={setRefs}
+                      value={refImages}
+                      onChange={setRefImages}
                       maxFiles={3}
                       label="拖拽或点击上传角色参考图"
                     />
@@ -153,7 +151,7 @@ export default function Grid12Page() {
                     <Label htmlFor="desc">角色描述</Label>
                     <Textarea
                       id="desc"
-                      placeholder="详细描述角色外观，如：年轻女性，蓝色短发，穿红色战甲，动漫风格…"
+                      placeholder="详细描述角色外观，如：年轻女性，蓝色短发，穿红色战甲，动漫风格"
                       rows={4}
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}

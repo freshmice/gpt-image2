@@ -15,7 +15,7 @@ import { ResultGallery } from "@/components/studio/result-gallery";
 import { MultiImageUpload } from "@/components/studio/multi-image-upload";
 import { useCredentialsStore } from "@/lib/store/credentials";
 import { useHistoryStore } from "@/lib/store/history";
-import { apiEdit, saveImagesForHistory } from "@/lib/fetcher";
+import { apiEdit } from "@/lib/fetcher";
 import { SIZES_EDIT, QUALITIES } from "@/lib/constants";
 import { STORYBOARD_FRAME_TEMPLATE } from "@/lib/prompts";
 import type { GeneratedImage } from "@/lib/types";
@@ -34,7 +34,7 @@ export default function StoryboardPage() {
   const { apiKey, baseUrl, model } = useCredentialsStore();
   const pushHistory = useHistoryStore((s) => s.push);
 
-  const [refs, setRefs] = React.useState<File[]>([]);
+  const [refImages, setRefImages] = React.useState<File[]>([]);
   const [style, setStyle] = React.useState("");
   const [frames, setFrames] = React.useState<Frame[]>([newFrame()]);
   const [size, setSize] = React.useState<string>("1536x1024");
@@ -60,7 +60,7 @@ export default function StoryboardPage() {
       toast.error("请先在右上角配置 API 凭证");
       return;
     }
-    if (refs.length === 0) {
+    if (refImages.length === 0) {
       toast.error("请上传至少一张角色参考图");
       return;
     }
@@ -93,18 +93,17 @@ export default function StoryboardPage() {
         baseUrl,
         model,
         prompt,
-        images: refs,
+        images: refImages,
         size,
         quality,
         n: 1,
       });
       setResults(res.images);
       setElapsedMs(res.elapsedMs);
-      const savedRefs = await saveImagesForHistory(res.images, "storyboard");
       pushHistory({
         type: "storyboard",
         prompt,
-        images: savedRefs,
+        images: res.savedRefs,
         elapsedMs: res.elapsedMs,
         createdAt: Date.now(),
       });
@@ -130,8 +129,8 @@ export default function StoryboardPage() {
               <div className="space-y-1.5">
                 <Label>角色参考图（最多 5 张）</Label>
                 <MultiImageUpload
-                  value={refs}
-                  onChange={setRefs}
+                  value={refImages}
+                  onChange={setRefImages}
                   maxFiles={5}
                   label="拖拽或点击上传角色参考图"
                 />
@@ -141,7 +140,7 @@ export default function StoryboardPage() {
                 <Label htmlFor="style">画风描述（可选）</Label>
                 <Input
                   id="style"
-                  placeholder="如：日式漫画、赛博朋克、水彩风…"
+                  placeholder="如：日式漫画、赛博朋克、水彩风格"
                   value={style}
                   onChange={(e) => setStyle(e.target.value)}
                 />
@@ -183,7 +182,7 @@ export default function StoryboardPage() {
                         )}
                       </div>
                       <Textarea
-                        placeholder="场景描述，如：角色站在雨中的街道上…"
+                        placeholder="场景描述，如：角色站在雨中的街道上"
                         rows={2}
                         value={frame.scene}
                         onChange={(e) =>

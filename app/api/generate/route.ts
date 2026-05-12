@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { callGenerations } from "@/lib/packy-server";
+import { callGenerations, persistImages } from "@/lib/packy-server";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -46,7 +46,8 @@ export async function POST(req: Request) {
       baseUrl: data.baseUrl,
       body,
     });
-    return NextResponse.json({ images, elapsedMs });
+    const savedRefs = await persistImages(images, "generate");
+    return NextResponse.json({ images, savedRefs, elapsedMs });
   } catch (e) {
     return NextResponse.json(
       { error: e instanceof Error ? e.message : String(e) },

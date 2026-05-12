@@ -12,7 +12,7 @@ import { ResultGallery } from "@/components/studio/result-gallery";
 import { MultiImageUpload } from "@/components/studio/multi-image-upload";
 import { useCredentialsStore } from "@/lib/store/credentials";
 import { useHistoryStore } from "@/lib/store/history";
-import { apiEdit, saveImagesForHistory } from "@/lib/fetcher";
+import { apiEdit } from "@/lib/fetcher";
 import { SIZES_EDIT, QUALITIES } from "@/lib/constants";
 import { characterConsistencyPrompt } from "@/lib/prompts";
 import type { GeneratedImage } from "@/lib/types";
@@ -21,7 +21,7 @@ export default function CharacterPage() {
   const { apiKey, baseUrl, model } = useCredentialsStore();
   const pushHistory = useHistoryStore((s) => s.push);
 
-  const [refs, setRefs] = React.useState<File[]>([]);
+  const [refImages, setRefImages] = React.useState<File[]>([]);
   const [description, setDescription] = React.useState("");
   const [scene, setScene] = React.useState("");
   const [size, setSize] = React.useState<string>("1024x1024");
@@ -36,7 +36,7 @@ export default function CharacterPage() {
       toast.error("请先在右上角配置 API 凭证");
       return;
     }
-    if (refs.length === 0) {
+    if (refImages.length === 0) {
       toast.error("请上传至少一张角色参考图");
       return;
     }
@@ -49,18 +49,17 @@ export default function CharacterPage() {
         baseUrl,
         model,
         prompt,
-        images: refs,
+        images: refImages,
         size,
         quality,
         n,
       });
       setResults(res.images);
       setElapsedMs(res.elapsedMs);
-      const refs2 = await saveImagesForHistory(res.images, "character");
       pushHistory({
         type: "character",
         prompt,
-        images: refs2,
+        images: res.savedRefs,
         elapsedMs: res.elapsedMs,
         createdAt: Date.now(),
       });
@@ -86,8 +85,8 @@ export default function CharacterPage() {
               <div className="space-y-1.5">
                 <Label>角色参考图（最多 5 张）</Label>
                 <MultiImageUpload
-                  value={refs}
-                  onChange={setRefs}
+                  value={refImages}
+                  onChange={setRefImages}
                   maxFiles={5}
                   label="拖拽或点击上传角色参考图"
                 />
@@ -96,7 +95,7 @@ export default function CharacterPage() {
                 <Label htmlFor="desc">角色描述（可选）</Label>
                 <Textarea
                   id="desc"
-                  placeholder="补充角色特征，如：蓝色短发、红色战甲、猫耳…"
+                  placeholder="补充角色特征，如：蓝色短发、红色战甲、猫耳"
                   rows={3}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
@@ -107,7 +106,7 @@ export default function CharacterPage() {
                 <Label htmlFor="scene">场景描述</Label>
                 <Textarea
                   id="scene"
-                  placeholder="描述角色所处的场景，如：在樱花树下微笑…"
+                  placeholder="描述角色所处的场景，如：在樱花树下微笑"
                   rows={3}
                   value={scene}
                   onChange={(e) => setScene(e.target.value)}
