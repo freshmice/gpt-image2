@@ -34,6 +34,7 @@ export interface GeneratedImage {
 
 export interface GenerateResponse {
   images: GeneratedImage[];
+  savedRefs: HistoryImageRef[];
   elapsedMs: number;
 }
 

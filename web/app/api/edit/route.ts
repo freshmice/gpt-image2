@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { callEdits } from "@/lib/packy-server";
+import { callEdits, persistImages } from "@/lib/packy-server";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -47,7 +47,8 @@ export async function POST(req: Request) {
       baseUrl,
       form: upstream,
     });
-    return NextResponse.json({ images: out, elapsedMs });
+    const savedRefs = await persistImages(out, "edit");
+    return NextResponse.json({ images: out, savedRefs, elapsedMs });
   } catch (e) {
     return NextResponse.json(
       { error: e instanceof Error ? e.message : String(e) },

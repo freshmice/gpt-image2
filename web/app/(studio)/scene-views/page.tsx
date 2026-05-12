@@ -12,7 +12,7 @@ import { ResultGallery } from "@/components/studio/result-gallery";
 import { MultiImageUpload } from "@/components/studio/multi-image-upload";
 import { useCredentialsStore } from "@/lib/store/credentials";
 import { useHistoryStore } from "@/lib/store/history";
-import { apiEdit, saveImagesForHistory } from "@/lib/fetcher";
+import { apiEdit } from "@/lib/fetcher";
 import { SIZES_EDIT, QUALITIES } from "@/lib/constants";
 import { sceneViewPrompt } from "@/lib/prompts";
 import type { GeneratedImage } from "@/lib/types";
@@ -21,7 +21,7 @@ export default function SceneViewsPage() {
   const { apiKey, baseUrl, model } = useCredentialsStore();
   const pushHistory = useHistoryStore((s) => s.push);
 
-  const [refs, setRefs] = React.useState<File[]>([]);
+  const [refImages, setRefImages] = React.useState<File[]>([]);
   const [description, setDescription] = React.useState("");
   const [size, setSize] = React.useState<string>("1536x1024");
   const [quality, setQuality] = React.useState<string>("auto");
@@ -34,7 +34,7 @@ export default function SceneViewsPage() {
       toast.error("请先在右上角配置 API 凭证");
       return;
     }
-    if (refs.length === 0) {
+    if (refImages.length === 0) {
       toast.error("请上传至少一张场景参考图");
       return;
     }
@@ -47,18 +47,17 @@ export default function SceneViewsPage() {
         baseUrl,
         model,
         prompt,
-        images: refs,
+        images: refImages,
         size,
         quality,
         n: 1,
       });
       setResults(res.images);
       setElapsedMs(res.elapsedMs);
-      const savedRefs = await saveImagesForHistory(res.images, "scene-views");
       pushHistory({
         type: "scene-views",
         prompt,
-        images: savedRefs,
+        images: res.savedRefs,
         elapsedMs: res.elapsedMs,
         createdAt: Date.now(),
       });
@@ -84,8 +83,8 @@ export default function SceneViewsPage() {
               <div className="space-y-1.5">
                 <Label>场景参考图（最多 3 张）</Label>
                 <MultiImageUpload
-                  value={refs}
-                  onChange={setRefs}
+                  value={refImages}
+                  onChange={setRefImages}
                   maxFiles={3}
                   label="拖拽或点击上传场景参考图"
                 />
@@ -94,7 +93,7 @@ export default function SceneViewsPage() {
                 <Label htmlFor="desc">场景补充描述（可选）</Label>
                 <Textarea
                   id="desc"
-                  placeholder="补充场景细节，如：日式街道、夜晚、霓虹灯…"
+                  placeholder="补充场景细节，如：日式街道、夜晚、霓虹灯"
                   rows={3}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
